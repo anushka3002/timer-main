@@ -16,6 +16,7 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
   onToggle,
   onRestart,
 }) => {
+  
   const isCompleted = remainingTime <= 0;
   
   if (isCompleted) {
