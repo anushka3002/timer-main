@@ -23,8 +23,8 @@ export const TimerItem: React.FC<TimerItemProps> = ({ timer }) => {
   useEffect(() => {
     if (timer.isRunning) {
       intervalRef.current = window.setInterval(() => {
-        updateTimer(timer.id);
-        
+        updateTimer(); 
+  
         if (timer.remainingTime <= 1 && !hasEndedRef.current) {
           hasEndedRef.current = true;
           timerAudio.play().catch(console.error);
@@ -39,10 +39,19 @@ export const TimerItem: React.FC<TimerItemProps> = ({ timer }) => {
         }
       }, 1000);
     }
-
+  
     return () => clearInterval(intervalRef.current!);
-  }, [timer.isRunning, timer.id, timer.remainingTime, timer.title, timerAudio, updateTimer]);
-
+  }, [timer.isRunning, timer.remainingTime, timer.title, timerAudio, updateTimer]);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      updateTimer();
+    }, 1000);
+  
+    return () => clearInterval(interval);
+  }, [updateTimer]);
+  
+  
   const handleRestart = () => {
     hasEndedRef.current = false;
     restartTimer(timer.id);
