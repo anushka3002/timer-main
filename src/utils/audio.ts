@@ -3,12 +3,15 @@ export class TimerAudio {
   private audioContext: AudioContext | null = null;
   private oscillator: OscillatorNode | null = null;
   private gainNode: GainNode | null = null;
+  private isPlaying: boolean = false;
+  private stopTimeout: number | null = null;
 
   private constructor() {}
 
   static getInstance(): TimerAudio {
     if (!TimerAudio.instance) {
       TimerAudio.instance = new TimerAudio();
+      TimerAudio.instance.stop = TimerAudio.instance.stop.bind(TimerAudio.instance);
     }
     return TimerAudio.instance;
   }
@@ -31,37 +34,49 @@ export class TimerAudio {
         throw new Error('AudioContext not initialized');
       }
 
-      // Create and configure oscillator
-      this.oscillator = this.audioContext.createOscillator();
-      this.gainNode = this.audioContext.createGain();
-      
-      this.oscillator.type = 'sine';
-      this.oscillator.frequency.setValueAtTime(880, this.audioContext.currentTime); // A5 note
-      
-      // Configure gain (volume) envelope
-      this.gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-      this.gainNode.gain.linearRampToValueAtTime(0.5, this.audioContext.currentTime + 0.01);
-      this.gainNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 0.5);
-      
-      // Connect nodes
-      this.oscillator.connect(this.gainNode);
-      this.gainNode.connect(this.audioContext.destination);
-      
-      // Start and stop the oscillator
-      this.oscillator.start(this.audioContext.currentTime);
-      this.oscillator.stop(this.audioContext.currentTime + 0.5);
-      
-      // Cleanup after sound ends
-      setTimeout(() => {
-        this.cleanup();
-      }, 500);
+      if (this.isPlaying) return;
+      this.isPlaying = true;
 
+      const playTone = () => {
+        if (!this.isPlaying) return;
+
+        this.oscillator = this.audioContext!.createOscillator();
+        this.gainNode = this.audioContext!.createGain();
+
+        this.oscillator.type = 'sine';
+        this.oscillator.frequency.setValueAtTime(880, this.audioContext!.currentTime);
+
+        this.gainNode.gain.setValueAtTime(0, this.audioContext!.currentTime);
+        this.gainNode.gain.linearRampToValueAtTime(0.5, this.audioContext!.currentTime + 0.01);
+        this.gainNode.gain.linearRampToValueAtTime(0, this.audioContext!.currentTime + 0.5);
+
+        this.oscillator.connect(this.gainNode);
+        this.gainNode.connect(this.audioContext!.destination);
+
+        this.oscillator.start();
+        this.oscillator.stop(this.audioContext!.currentTime + 0.5);
+
+        setTimeout(playTone, 600);
+      };
+
+      playTone();
+
+      this.stopTimeout = window.setTimeout(() => {
+        this.stop();
+      }, 5000);
     } catch (error) {
       console.error('Failed to play audio:', error);
     }
   }
 
   stop(): void {
+    this.isPlaying = false; 
+
+    if (this.stopTimeout) {
+      clearTimeout(this.stopTimeout);
+      this.stopTimeout = null;
+    }
+
     this.cleanup();
   }
 
@@ -71,7 +86,7 @@ export class TimerAudio {
         this.oscillator.stop();
         this.oscillator.disconnect();
       } catch (error) {
-        console.log(error)
+        console.log(error);
       }
       this.oscillator = null;
     }
